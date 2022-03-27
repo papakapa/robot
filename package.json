@@ -1,0 +1,27 @@
+{
+  "name": "robot-v1",
+  "version": "1.0.0",
+  "description": "",
+  "author": "papakapa",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {},
+  "dependencies": {
+    "apos-to-lex-form": "^1.0.5",
+    "axios": "^0.24.0",
+    "cheerio": "^1.0.0-rc.10",
+    "natural": "^5.1.13",
+    "node-html-parser": "^5.1.0",
+    "pg": "^8.7.1",
+    "reflect-metadata": "^0.1.13",
+    "rimraf": "^3.0.2",
+    "robots-parser": "^3.0.0",
+    "rxjs": "^6.6.6",
+    "spelling-corrector": "^3.0.0",
+    "stopword": "^1.0.11",
+    "swagger-ui-express": "^4.2.0",
+    "typeorm": "^0.2.45",
+    "url-parse": "^1.5.3",
+    "uuid": "^8.3.2"
+  }
+}
