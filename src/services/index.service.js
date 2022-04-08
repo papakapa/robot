@@ -5,6 +5,8 @@ const { removeStopwords , en, ru } = require('stopword');
 const SpellCorrector = require('spelling-corrector');
 
 const { formatTextSymbols } = require('../common/utils');
+const { indexTypes } = require('../common/index.types');
+const { indexingStatus } = require('../common/indexing.status');
 const { RESTRICTED_LANGUAGES, typeWeight } = require('../common/constants');
 const { getHighLevelDomain, getUrlPathname, getProtocol } = require('../services/url.service');
 const { crawlerInstance } = require('../instances/crawler.instance');
@@ -12,7 +14,9 @@ const { IndexRepository } = require('../repositories/index.repository');
 const { WordRepository } = require('../repositories/word.repository');
 const { getPageSignificantData, removeRestrictedSelectors } = require('../services/web.page.service');
 
-const prepareIndexes = (text, type = 'text') => {
+const restrictedPathDomainStrings = ['ru', 'eng', 'by', 'org', 'com'];
+
+const prepareIndexes = (text, type = indexTypes.text) => {
   // const spellCorrector = new SpellCorrector();
   // spellCorrector.loadDictionary();
   const parsedText = formatTextSymbols(text);
@@ -39,7 +43,7 @@ const prepareIndexes = (text, type = 'text') => {
   });
 };
 
-const getPrimaryIndexes = (text, place = 'title') => {
+const getPrimaryIndexes = (text, place = indexTypes.title) => {
   if (!text) {
     return [];
   }
@@ -58,15 +62,10 @@ const getTextIndexes = (document) => {
 
 const getPageIndexes = (document, title, description) => {
   const titleIndexes = getPrimaryIndexes(title);
-  const descriptionIndexes = getPrimaryIndexes(description, 'description');
-  // const keywordsIndexes = getPrimaryIndexes(keywords, 'keyword');
-  // const textIndexes = getTextIndexes(document);
+  const descriptionIndexes = getPrimaryIndexes(description, indexTypes.description);
 
   return { titleIndexes, descriptionIndexes };
-  // return [...titleIndexes, ...textIndexes, ...descriptionIndexes];
 };
-
-const restrictedStrings = ['ru', 'eng', 'by', 'org', 'com'];
 
 const getDomainIndexes = (url) => {
   const { WordTokenizer } = natural;
@@ -75,14 +74,14 @@ const getDomainIndexes = (url) => {
   const domainArr = getHighLevelDomain(url)
       .split('.')
       .slice(0, -1)
-      .filter(el => el && el.length > 2 && !restrictedStrings.includes(el))
+      .filter(el => el && el.length > 2 && !restrictedPathDomainStrings.includes(el))
       .reduce((acc, cur) => {
         const tokenizedReview = tokenizer.tokenize(cur);
 
         return [...acc, ...tokenizedReview];
       }, []);
 
-  return domainArr.map(el => ({ word: el, relevance: 'domain' }));
+  return domainArr.map(el => ({ word: el, relevance: indexTypes.domain }));
 };
 
 const getPathIndexes = (url) => {
@@ -103,12 +102,12 @@ const getPathIndexes = (url) => {
 
     const lexedText = aposToLexForm(cur);
     const tokenizedReview = tokenizer.tokenize(lexedText);
-    const preparedPathIndexes = tokenizedReview.map(el => ({ word: el, relevance: 'pathname', pathIndex: i}));
+    const preparedPathIndexes = tokenizedReview.map(el => ({ word: el, relevance: indexTypes.path, pathIndex: i}));
 
     return [...acc, ...preparedPathIndexes];
   }, []);
 
-  const filteredReview = preparedPathStr.filter(({word}) => word && word.length > 2 && word.length < 25 && !restrictedStrings.includes(word) && !RESTRICTED_LANGUAGES.includes(word));
+  const filteredReview = preparedPathStr.filter(({word}) => word && word.length > 2 && word.length < 25 && !restrictedPathDomainStrings.includes(word) && !RESTRICTED_LANGUAGES.includes(word));
 
   return {
     pathIndexes: filteredReview,
@@ -138,7 +137,7 @@ const getKeyWordsIndexes = (keywords) => {
     const tokenizedReview = tokenizer.tokenize(parsedText);
 
 
-    const preparedKeywords = tokenizedReview.map((token) => ({ word: token, relevance: 'keyword', weight: 2 }));
+    const preparedKeywords = tokenizedReview.map((token) => ({ word: token, relevance: indexTypes.keyword, weight: 2 }));
 
     return [ ...acc, ...preparedKeywords];
   }, []);
@@ -181,11 +180,11 @@ const getLinkWeight = (url, titleIndexes, descriptionIndexes, pathIndexes, pageI
 const addTypeWeightForIndexes = (indexes, pathDepth) => indexes.map(index => {
   const { relevance, word } = index;
 
-  if (relevance === 'domain') {
+  if (relevance === indexTypes.domain) {
     return { word, relevance, weight: 3 - (pathDepth * 0.5) };
   }
 
-  if (relevance === 'pathname') {
+  if (relevance === indexTypes.path) {
     return { word, relevance, weight: 2 - 0.25 * index.pathIndex };
   }
 
@@ -193,13 +192,13 @@ const addTypeWeightForIndexes = (indexes, pathDepth) => indexes.map(index => {
 })
 
 const handleIndexes = async (queue, connection, linksRepository) => {
-  const { link: url, preRank, internalLinks } = queue.dequeue();
+  const { url, preRank, internalLinksCount } = queue.dequeue();
   console.log(`Current URL: ${url}`);
 
   try {
     const { data } = await crawlerInstance.get(url) || {};
     if (!data) {
-      await linksRepository.updateAfterIndexing(url,  null, null, null, 'failed');
+      await linksRepository.updateAfterIndexing(url,  null, null, null, indexingStatus.failed);
 
       return;
     }
@@ -208,7 +207,7 @@ const handleIndexes = async (queue, connection, linksRepository) => {
     const keywordIndexes = getKeyWordsIndexes(keywords);
     const { descriptionIndexes, titleIndexes } = getPageIndexes(data, title, description);
     const { pathIndexes, pathDepth, domainIndexes } = getUrlIndexes(url);
-    const linkWeight = getLinkWeight(url, titleIndexes, descriptionIndexes, pathIndexes, pageInfo, preRank, internalLinks);
+    const linkWeight = getLinkWeight(url, titleIndexes, descriptionIndexes, pathIndexes, pageInfo, preRank, internalLinksCount);
     const indexes = [...keywordIndexes, ...descriptionIndexes, ...titleIndexes, ...pathIndexes, ...domainIndexes];
     const typeWeightedIndexes = addTypeWeightForIndexes(indexes, pathDepth);
     const linkWeightedIndexes = typeWeightedIndexes.map(({ word, weight, relevance }) => ({ word, relevance, weight: weight + linkWeight, }));
@@ -228,7 +227,7 @@ const handleIndexes = async (queue, connection, linksRepository) => {
   } catch (e) {
     console.log(e.message);
 
-    await linksRepository.updateAfterIndexing(url,  null, null,  null, 'failed');
+    await linksRepository.updateAfterIndexing(url,  null, null,  null, indexingStatus.failed);
   }
 };
 

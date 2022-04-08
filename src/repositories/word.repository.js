@@ -7,15 +7,15 @@ class WordRepository extends Repository {
 
   async findAll() {
     try {
-      const { rows } = await this.connection.query(`SELECT word from words`);
+      const { rows } = await this.connection.query(`SELECT text from tokens`);
 
       if (!rows.length) {
-        console.log('No words founded');
+        console.log('No tokens founded');
 
         return [];
       }
 
-      return rows.map(({ word }) => word);
+      return rows.map(({ text }) => text);
     } catch (e) {
       console.log(e.message);
 
@@ -23,15 +23,15 @@ class WordRepository extends Repository {
     }
   }
 
-  async findOne(word) {
+  async findOne(token) {
     try {
-      const { rows } = await this.connection.query(`SELECT word FROM words WHERE word = $1`, [word]);
+      const { rows } = await this.connection.query(`SELECT text FROM tokens WHERE text = $1`, [token]);
 
       if (!rows.length) {
         return null;
       }
 
-      return rows[0].word;
+      return rows[0].text;
     } catch (e) {
       console.log(e.message);
 
@@ -39,15 +39,15 @@ class WordRepository extends Repository {
     }
   }
 
-  async add(word) {
+  async add(token) {
     try {
-      const existingWord = await this.findOne(word);
+      const existingToken = await this.findOne(token);
 
-      if (existingWord) {
+      if (existingToken) {
         return;
       }
 
-      await this.connection.query(`INSERT INTO words (word) VALUES ($1)`, [word]);
+      await this.connection.query(`INSERT INTO tokens (word) VALUES ($1)`, [token]);
     } catch (e) {
       console.log(e.message);
     }
