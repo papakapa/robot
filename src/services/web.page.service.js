@@ -92,11 +92,9 @@ const getPageSignificantData = (document) => {
   const title = getPageTitle($page);
   const description = getPageDescription($page);
   const keywords = getPageKeywords($page);
-  const locale = getPageLocale($page);
-  const pageType = getPageType($page);
   const geoData = getPageGeo($page);
 
-  return { title, description, keywords, locale, pageType, ...geoData };
+  return { title, description, keywords, ...geoData };
 };
 
 const removeRestrictedSelectors = (document) => {

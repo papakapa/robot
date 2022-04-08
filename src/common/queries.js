@@ -12,7 +12,7 @@ const initQuery = `
   
   CREATE TABLE IF NOT EXISTS links (
       id uuid default uuid_generate_v4(),
-      link varchar(255) NOT NULL UNIQUE,
+      url varchar(255) NOT NULL UNIQUE,
       title varchar(255),
       description varchar(255),
       country varchar(50),
@@ -29,24 +29,21 @@ const initQuery = `
   CREATE TABLE IF NOT EXISTS domains (
      id uuid default uuid_generate_v4(),
      name varchar(255) NOT NULL UNIQUE,
-     failed_links integer,
      PRIMARY KEY(id)
   );
   
-  CREATE TABLE IF NOT EXISTS words (
+  CREATE TABLE IF NOT EXISTS tokens (
       id uuid default uuid_generate_v4(),
-      word varchar(255) NOT NULL UNIQUE,
+      text varchar(255) NOT NULL UNIQUE,
       PRIMARY KEY (id)
   );
   
-  CREATE TABLE IF NOT EXISTS test_indexes (
+  CREATE TABLE IF NOT EXISTS indexes (
       id uuid default uuid_generate_v4(),
-      word_text varchar(255) REFERENCES words(word),
-      link_text varchar(255) REFERENCES links(link),
+      token varchar(255) REFERENCES tokens(text),
+      url varchar(255) REFERENCES links(url),
       weight real NOT NULL,
-      place integer NOT NULL,
-      country varchar(50),
-      region varchar(50),
+      position integer NOT NULL,
       relevance relevancy default 'text',
       PRIMARY KEY (id)
   );
