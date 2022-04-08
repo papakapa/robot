@@ -3,12 +3,14 @@ const cheerio = require('cheerio');
 const { LinkRepository } = require('../repositories/link.repository');
 const { crawlerInstance } = require('../instances/crawler.instance');
 const { removeDuplicates } = require('../common/utils');
-const { validateUrl, formatUrl } = require('../services/url.service');
+const { validateUrl, formatUrl, updateProtocol, getHighLevelDomain } = require('../services/url.service');
 const { getRobotRules, validateUrlByRobots } = require('../services/robots.service');
 
 const handleLinks = async (queue, connection) => {
-  const url = queue.dequeue();
+  const url  = queue.dequeue();
+  const currentDomain = getHighLevelDomain(url);
   const linksRepository = new LinkRepository(connection);
+  const outboundLinks = [];
 
   console.log(`Current url: ${url}`);
   console.log(`Queue length: ${queue.getLength()}`);
@@ -22,6 +24,8 @@ const handleLinks = async (queue, connection) => {
 
     const { data } = await crawlerInstance.get(url) || {};
     if (!data) {
+      await linksRepository.updateAfterCrawling(url, 'failed');
+
       return;
     }
 
@@ -30,7 +34,15 @@ const handleLinks = async (queue, connection) => {
       const url = $(link).attr('href');
       const preparedUrl = formatUrl(url);
 
-      if (validateUrl(preparedUrl) || visitedLinks.includes(preparedUrl)) {
+      if (validateUrl(preparedUrl)) {
+        return null;
+      }
+
+      const updatedProtocolUrl = updateProtocol(preparedUrl);
+      const isLinkVisited = visitedLinks.find(({ link: visitedLink }) => visitedLink === preparedUrl || visitedLink === updatedProtocolUrl);
+      if (isLinkVisited) {
+        !outboundLinks.includes(preparedUrl) && outboundLinks.push(isLinkVisited);
+
         return null;
       }
 
@@ -38,13 +50,31 @@ const handleLinks = async (queue, connection) => {
     })
         .filter((_, url) => !!url);
     const withoutDuplicates = removeDuplicates(urls);
+    const inboundLinksFound = withoutDuplicates.length + outboundLinks.length;
+    const currentPagePreRank = 1/inboundLinksFound;
+
+    for (let link of outboundLinks) {
+      const { link: visitedUrl, outboundCount } = link;
+      const domain = getHighLevelDomain(visitedUrl);
+      const outboundPreRank = domain === currentDomain ? currentPagePreRank / 1.5 : currentPagePreRank;
+
+      await linksRepository.updateOutbounds(visitedUrl, outboundCount, outboundPreRank, currentPagePreRank);
+    }
 
     for (let link of withoutDuplicates) {
       queue.enqueue(link);
-      await linksRepository.add(link);
+      const domain = getHighLevelDomain(link);
+      const outboundPreRank = domain === currentDomain ? currentPagePreRank / 1.5 : currentPagePreRank;
+
+      await linksRepository.addDomainIfNotExist(link);
+      await linksRepository.add(link, outboundPreRank);
     }
+
+    await linksRepository.updateAfterCrawling(url, 'crawled', inboundLinksFound);
   } catch (e) {
     console.log(e.message);
+
+    await linksRepository.updateAfterCrawling(url, 'failed');
   }
 };
 

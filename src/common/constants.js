@@ -10,16 +10,24 @@ const RESTRICTED_LANGUAGES = [
   'tt', 'uk', 'ur', 'vi', 'wuu', 'yo', 'zh', 'zh-min-man', 'zh-yue', 'dl', 'azb', 'arz', 'ckb',
   'war'
 ];
-const RESTRICTED_FILE_EXTENSIONS = ['pdf', 'png', 'cab', 'htm', 'gif', 'xlsx', 'sql', 'jpg', 'zip', 'doc', 'docx'];
-const VALID_DOMAINS = ['com', 'ru', 'org'];
-const WIKI_ENTRY_POINT = 'https://www.wikipedia.org/';
+const RESTRICTED_FILE_EXTENSIONS = ['pdf', 'png', 'cab', 'htm', 'gif', 'xlsx', 'sql', 'jpg', 'zip', 'doc', 'docx', 'mp3', 'mp4'];
+const VALID_DOMAINS = ['com', 'ru', 'org', 'by'];
+const WIKI_ENTRY_POINT = 'https://www.wikipedia.org';
 const HABR_ENTRY_POINT = 'https://habr.com/ru';
-const S13_ENTRY_POINT = 'https://s13.ru/';
+const S13_ENTRY_POINT = 'https://s13.ru';
 const RESTRICTED_SELECTORS = [
   'footer', 'header', 'iframe', 'script', 'noscript', 'img', 'button', 'span', 'svg', 'ul', 'h3',
   'h4', 'a', 'ol', 'div[class*="nav"]', 'div[class*="footer"]', 'div[class*="header"]', 'div[class*="comm"]',
   'div[class*="menu"]', 'div[class*="banner"]', 'div[class*="pagination"]', 'div[class*="icon"]'
 ];
+
+const typeWeight = {
+  domain: 3,
+  title: 2,
+  pathname: 2.5,
+  keyword: 1,
+  description: 1.5,
+};
 
 module.exports = {
   RESTRICTED_FILE_EXTENSIONS,
@@ -29,4 +37,5 @@ module.exports = {
   HABR_ENTRY_POINT,
   WIKI_ENTRY_POINT,
   S13_ENTRY_POINT,
+  typeWeight,
 };

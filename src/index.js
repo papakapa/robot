@@ -3,13 +3,15 @@ const { getConnection } = require('./clients/pg.client');
 const { handleLinks } = require('./services/link.service');
 const { handleIndexes } = require('./services/index.service');
 const { LinkRepository } = require('./repositories/link.repository');
-const { WIKI_ENTRY_POINT, HABR_ENTRY_POINT, S13_ENTRY_POINT } = require('./common/constants');
 
 const crawleLinks = async () => {
-  const pgConnection = await getConnection();
-
   const queue = new Queue();
-  queue.enqueue(S13_ENTRY_POINT);
+
+  const pgConnection = await getConnection();
+  const linksRepository = new LinkRepository(pgConnection);
+
+  const crawlingLinks = await linksRepository.findForCrawling(100);
+  crawlingLinks.forEach(link => queue.enqueue(link));
 
   while (!queue.isEmpty()) {
    await handleLinks(queue, pgConnection);
@@ -20,11 +22,9 @@ const crawleIndexes = async () => {
   const queue = new Queue();
   try {
     const pgConnection = await getConnection();
-    const linksRepository = new LinkRepository(pgConnection)
+    const linksRepository = new LinkRepository(pgConnection);
 
-    // queue.enqueue(testUrl);
-
-    const indexingPages = await linksRepository.findForIndexing();
+    const indexingPages = await linksRepository.findForIndexing(3000);
 
     indexingPages.forEach(el => queue.enqueue(el));
 
@@ -36,5 +36,5 @@ const crawleIndexes = async () => {
   }
 };
 
-// crawleLinks().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
-crawleIndexes().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
+crawleLinks().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
+// crawleIndexes().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);

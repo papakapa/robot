@@ -3,32 +3,86 @@ const Url = require('url-parse');
 const { getLastBySeparator } = require('../common/utils');
 const { RESTRICTED_LANGUAGES, RESTRICTED_FILE_EXTENSIONS, VALID_DOMAINS } = require('../common/constants');
 
+const getProtocol = (url) => {
+  const { protocol } = new Url(url);
+
+  return protocol;
+}
+
+const updateProtocol = (url) => {
+  const { protocol } = new Url(url);
+
+  if (!url || !protocol) {
+    return url;
+  }
+
+  return protocol === 'http:' ? url.replace('http:', 'https:') : url.replace('https:', 'http:');
+};
+
+const getHighLevelDomain = (url) => {
+  const { hostname } = new Url(url);
+
+  return hostname;
+}
+
+const getUrlPathname = (url) => {
+  const { pathname } = new Url(url);
+
+  return pathname;
+}
+
+const validatePath = (path) => {
+  if (!path) {
+    return true;
+  }
+
+  const restrictedDictionary = ['login', 'authorize', 'auth'];
+  const restrictedValues = [ ...RESTRICTED_LANGUAGES, ...RESTRICTED_FILE_EXTENSIONS];
+  const lastPathSlashValue = path && getLastBySeparator(path, '/');
+  const lastPathDotValue = path && getLastBySeparator(path, '.');
+
+  if (path.split('/').length > 5) {
+    return false;
+  }
+
+  if (RESTRICTED_LANGUAGES.includes(lastPathSlashValue) || restrictedDictionary.includes(lastPathSlashValue)) {
+    return false;
+  }
+
+  return !restrictedValues.includes(lastPathDotValue);
+}
+
+const validateHost = (host) => {
+  if (!host) {
+    return false;
+  }
+
+  if (host.split('.').length > 2 && RESTRICTED_LANGUAGES.includes(host.split('.')[0])) {
+    return false;
+  }
+
+  if (host.includes('docs.google')) {
+    return false;
+  }
+
+  return VALID_DOMAINS.includes(getLastBySeparator(host, '.'));
+}
+
 const validateUrl = (url) => {
   const { protocol, host, query, pathname } = new Url(url);
-  const restrictedValues = [ ...RESTRICTED_LANGUAGES, ...RESTRICTED_FILE_EXTENSIONS];
 
   if (url && url.length > 250) {
     return true;
   }
 
-  if (pathname && pathname.split('/').length > 5) {
+  if (!validatePath(pathname)) {
     return true;
   }
 
-  if (host && host.split('.').length > 2 && RESTRICTED_LANGUAGES.includes(host.split('.')[0])) {
-    return true;
-  }
-  if (pathname && RESTRICTED_LANGUAGES.includes(getLastBySeparator(pathname, '/'))){
+  if (!validateHost(host)) {
     return true;
   }
 
-  if (pathname && restrictedValues.includes(getLastBySeparator(pathname, '.'))) {
-    return true;
-  }
-
-  if (host && !VALID_DOMAINS.includes(getLastBySeparator(host, '.'))){
-    return true;
-  }
   return !url || !protocol || !host || !!query;
 };
 
@@ -53,4 +107,8 @@ const formatUrl = (url) => {
 module.exports = {
   formatUrl,
   validateUrl,
+  updateProtocol,
+  getHighLevelDomain,
+  getUrlPathname,
+  getProtocol,
 };
