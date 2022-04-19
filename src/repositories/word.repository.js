@@ -47,7 +47,7 @@ class WordRepository extends Repository {
         return;
       }
 
-      await this.connection.query(`INSERT INTO tokens (word) VALUES ($1)`, [token]);
+      await this.connection.query(`INSERT INTO tokens (text) VALUES ($1)`, [token]);
     } catch (e) {
       console.log(e.message);
     }

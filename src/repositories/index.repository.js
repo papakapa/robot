@@ -10,7 +10,7 @@ class IndexRepository extends Repository {
       const { token, relevance, weight } = index;
 
       await this.connection.query(
-          `INSERT INTO indexes (token, url, position, relevance, weight) VALUES ($1, $2, $3, $4, $5)`,
+          `INSERT INTO indexes (token, link_url, position, relevance, weight) VALUES ($1, $2, $3, $4, $5)`,
           [token, url, position, relevance, weight]
       );
     } catch (e) {

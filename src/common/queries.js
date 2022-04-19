@@ -41,7 +41,7 @@ const initQuery = `
   CREATE TABLE IF NOT EXISTS indexes (
       id uuid default uuid_generate_v4(),
       token varchar(255) REFERENCES tokens(text),
-      url varchar(255) REFERENCES links(url),
+      link_url varchar(255) REFERENCES links(url),
       weight real NOT NULL,
       position integer NOT NULL,
       relevance relevancy default 'text',

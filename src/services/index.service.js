@@ -3,11 +3,13 @@ const aposToLexForm = require('apos-to-lex-form');
 const natural = require('natural');
 const { removeStopwords , en, ru } = require('stopword');
 const SpellCorrector = require('spelling-corrector');
+const encodeDetection = require('jschardet');
+const iconv = require('iconv-lite');
 
-const { formatTextSymbols } = require('../common/utils');
+const { formatTextSymbols, removeDuplicates } = require('../common/utils');
 const { indexTypes } = require('../common/index.types');
 const { indexingStatus } = require('../common/indexing.status');
-const { RESTRICTED_LANGUAGES, typeWeight } = require('../common/constants');
+const { RESTRICTED_LANGUAGES, typeWeight, domainTypeWeights } = require('../common/constants');
 const { getHighLevelDomain, getUrlPathname, getProtocol } = require('../services/url.service');
 const { crawlerInstance } = require('../instances/crawler.instance');
 const { IndexRepository } = require('../repositories/index.repository');
@@ -29,19 +31,25 @@ const prepareIndexes = (text, type = indexTypes.text) => {
   const filteredReviewEng = removeStopwords(tokenizedReview, en);
   const filteredReviewRus = removeStopwords(filteredReviewEng, ru);
 
-  const stemmedTokens = filteredReviewRus.map(el => {
-    const rusStemming = PorterStemmerRu.stem(el);
-
-    return PorterStemmer.stem(rusStemming);
-  });
-
-  return stemmedTokens.map(el => ({ word: el, relevance: type })).filter(({ word }) => {
-    const wordCondition = word && word.length > 2;
-    const specCondition = word && !word.includes('&nbsp');
+  return filteredReviewRus.map(el => ({ token: el, relevance: type })).filter(({ token }) => {
+    const wordCondition = token && token.length > 2;
+    const specCondition = token && !token.includes('&nbsp');
 
     return wordCondition && specCondition;
   });
 };
+
+const getStemmedIndexes = (indexes) => {
+  const { PorterStemmer, PorterStemmerRu } = natural;
+
+  return indexes.map(el => {
+    const { token } = el;
+    const rusStemming = PorterStemmerRu.stem(token);
+    const engStemming = PorterStemmer.stem(rusStemming);
+
+    return { ...el, token: engStemming };
+  })
+}
 
 const getPrimaryIndexes = (text, place = indexTypes.title) => {
   if (!text) {
@@ -67,21 +75,45 @@ const getPageIndexes = (document, title, description) => {
   return { titleIndexes, descriptionIndexes };
 };
 
-const getDomainIndexes = (url) => {
+const getDomainIndexes = (url, pathDepth) => {
   const { WordTokenizer } = natural;
   const tokenizer = new WordTokenizer();
+  const isWithPath = pathDepth > 0;
 
-  const domainArr = getHighLevelDomain(url)
-      .split('.')
-      .slice(0, -1)
+  const domainArr = getHighLevelDomain(url).split('.').slice(0, -1);
+
+  if (!domainArr.length) {
+    return [];
+  }
+
+  if (domainArr.length === 1) {
+    const tokenizedReview = tokenizer.tokenize(domainArr[0]);
+
+    return tokenizedReview.map(el => (
+        { token: el, relevance: indexTypes.domain, domainType: isWithPath ? 'path' : 'main' }
+    ));
+  }
+
+  if (domainArr.length === 2 || domainArr.length === 3) {
+    const subType = domainArr.length === 2 ? 'p1' : 'p2';
+    const subDomainsArr = subType === 'p1' ? domainArr[0] : domainArr[0].concat(`.${domainArr[2]}`);
+    const subDomainIndexes = tokenizer.tokenize(subDomainsArr)
+        .filter(el => el && el.length > 2 && !restrictedPathDomainStrings.includes(el))
+        .map(el => ({ token: el, relevance: indexTypes.domain, domainType: isWithPath ? 'path': subType }));
+    const mainDomainIndexes = tokenizer.tokenize(domainArr[1])
+        .map(el => ({ token: el, relevance: indexTypes.domain, domainType: isWithPath ? 'path': `main+${subType}` }));
+
+    return [...subDomainIndexes, ...mainDomainIndexes];
+  }
+
+  return domainArr
       .filter(el => el && el.length > 2 && !restrictedPathDomainStrings.includes(el))
       .reduce((acc, cur) => {
         const tokenizedReview = tokenizer.tokenize(cur);
 
         return [...acc, ...tokenizedReview];
-      }, []);
-
-  return domainArr.map(el => ({ word: el, relevance: indexTypes.domain }));
+      }, [])
+      .map(el => ({ token: el, relevance: indexTypes.domain, domainType: isWithPath ? 'path' : 'ppp' }));
 };
 
 const getPathIndexes = (url) => {
@@ -102,12 +134,12 @@ const getPathIndexes = (url) => {
 
     const lexedText = aposToLexForm(cur);
     const tokenizedReview = tokenizer.tokenize(lexedText);
-    const preparedPathIndexes = tokenizedReview.map(el => ({ word: el, relevance: indexTypes.path, pathIndex: i}));
+    const preparedPathIndexes = tokenizedReview.map(el => ({ token: el, relevance: indexTypes.path, pathIndex: i}));
 
     return [...acc, ...preparedPathIndexes];
   }, []);
 
-  const filteredReview = preparedPathStr.filter(({word}) => word && word.length > 2 && word.length < 25 && !restrictedPathDomainStrings.includes(word) && !RESTRICTED_LANGUAGES.includes(word));
+  const filteredReview = preparedPathStr.filter(({token}) => token && token.length > 2 && token.length < 25 && !restrictedPathDomainStrings.includes(token) && !RESTRICTED_LANGUAGES.includes(token));
 
   return {
     pathIndexes: filteredReview,
@@ -116,8 +148,8 @@ const getPathIndexes = (url) => {
 };
 
 const getUrlIndexes = (url) => {
-  const domainIndexes = getDomainIndexes(url);
   const { pathIndexes, pathDepth } = getPathIndexes(url);
+  const domainIndexes = getDomainIndexes(url, pathDepth);
 
   return { domainIndexes, pathIndexes, pathDepth };
 }
@@ -134,10 +166,8 @@ const getKeyWordsIndexes = (keywords) => {
         .replace(/[^a-zA-Z-9А-Яа-я ]/g, "")
         .toLowerCase();
     const tokenizer = new WordTokenizer();
-    const tokenizedReview = tokenizer.tokenize(parsedText);
-
-
-    const preparedKeywords = tokenizedReview.map((token) => ({ word: token, relevance: indexTypes.keyword, weight: 2 }));
+    const tokenizedReview = removeDuplicates(tokenizer.tokenize(parsedText));
+    const preparedKeywords = tokenizedReview.map((token) => ({ token: token, relevance: indexTypes.keyword, weight: 2 }));
 
     return [ ...acc, ...preparedKeywords];
   }, []);
@@ -168,27 +198,23 @@ const getLinkWeight = (url, titleIndexes, descriptionIndexes, pathIndexes, pageI
     weight += 0.1;
   }
 
-  if (pathIndexes.length) {
-    weight += 0.5 / pathIndexes.length;
-  }
-
-  const internalRank = internalLinks !== 0 ? 0.15/internalLinks : 0.001;
-  const externalRank = 0.85 * (preRank !== 0 ? preRank : 0.001);
+  const internalRank = internalLinks !== 0 ? 0.15/internalLinks : 0.01;
+  const externalRank = 0.85 * (preRank !== 0 ? preRank : 0.01);
   return weight + internalRank + externalRank;
 }
 
 const addTypeWeightForIndexes = (indexes, pathDepth) => indexes.map(index => {
-  const { relevance, word } = index;
+  const { relevance, token } = index;
 
   if (relevance === indexTypes.domain) {
-    return { word, relevance, weight: 3 - (pathDepth * 0.5) };
+    return { token, relevance, weight: domainTypeWeights[index.domainType] - (pathDepth * 0.4) };
   }
 
   if (relevance === indexTypes.path) {
-    return { word, relevance, weight: 2 - 0.25 * index.pathIndex };
+    return { token, relevance, weight: 2 - 0.33 * index.pathIndex };
   }
 
-  return { word, relevance, weight: typeWeight[relevance] };
+  return { token, relevance, weight: typeWeight[relevance] };
 })
 
 const handleIndexes = async (queue, connection, linksRepository) => {
@@ -196,21 +222,34 @@ const handleIndexes = async (queue, connection, linksRepository) => {
   console.log(`Current URL: ${url}`);
 
   try {
-    const { data } = await crawlerInstance.get(url) || {};
+    const { data } = await crawlerInstance.get(url, {
+      responseType: 'arraybuffer',
+      // proxy: {
+      //   host: '188.170.233.102',
+      //   port: 3128
+      // }
+    }) || {};
     if (!data) {
       await linksRepository.updateAfterIndexing(url,  null, null, null, indexingStatus.failed);
 
       return;
     }
 
-    const { title, description, keywords, ...pageInfo } = getPageSignificantData(data, url);
+    const { encoding } = encodeDetection.detect(data) || {};
+    const decodedData = iconv.decode(data, encoding ? encoding : 'utf8');
+
+    console.log(`Page encoding: ${encoding}`);
+
+
+    const { title, description, keywords, ...pageInfo } = getPageSignificantData(decodedData, url);
     const keywordIndexes = getKeyWordsIndexes(keywords);
-    const { descriptionIndexes, titleIndexes } = getPageIndexes(data, title, description);
+    const { descriptionIndexes, titleIndexes } = getPageIndexes(decodedData, title, description);
     const { pathIndexes, pathDepth, domainIndexes } = getUrlIndexes(url);
     const linkWeight = getLinkWeight(url, titleIndexes, descriptionIndexes, pathIndexes, pageInfo, preRank, internalLinksCount);
     const indexes = [...keywordIndexes, ...descriptionIndexes, ...titleIndexes, ...pathIndexes, ...domainIndexes];
-    const typeWeightedIndexes = addTypeWeightForIndexes(indexes, pathDepth);
-    const linkWeightedIndexes = typeWeightedIndexes.map(({ word, weight, relevance }) => ({ word, relevance, weight: weight + linkWeight, }));
+    const stemmedIndexes = getStemmedIndexes(indexes);
+    const typeWeightedIndexes = addTypeWeightForIndexes(stemmedIndexes, pathDepth);
+    const linkWeightedIndexes = typeWeightedIndexes.map(({ token, weight, relevance }) => ({ token, relevance, weight: weight + linkWeight, }));
 
     console.log(`Number of indexes: ${linkWeightedIndexes.length}`);
 
@@ -218,8 +257,8 @@ const handleIndexes = async (queue, connection, linksRepository) => {
     const indexRepository = new IndexRepository(connection);
 
     for (let i = 0; i < linkWeightedIndexes.length; i++) {
-      const { word } = linkWeightedIndexes[i] || {};
-      await wordsRepository.add(word);
+      const { token } = linkWeightedIndexes[i] || {};
+      await wordsRepository.add(token);
       await indexRepository.add(linkWeightedIndexes[i], url, i);
     }
 

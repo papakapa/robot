@@ -5,6 +5,7 @@ const { RESTRICTED_SELECTORS } = require('../common/constants');
 const getPageTitle = (cheerioInstance) => {
   const metaTitle = cheerioInstance('meta[property="og:title"]');
   const tagTitle = cheerioInstance('head > title');
+  const title = cheerioInstance('title');
 
   if (metaTitle.length && metaTitle.attr('content')) {
     return metaTitle.attr('content').trim();
@@ -14,12 +15,17 @@ const getPageTitle = (cheerioInstance) => {
     return tagTitle.text().trim();
   }
 
+  if (title.length) {
+    return title.text().trim();
+  }
+
   return null;
 };
 
 const getPageDescription = (cheerioInstance) => {
   const metaDescription = cheerioInstance('meta[property="og:description"]');
   const tagDescription = cheerioInstance('meta[name="description"]');
+  const tagUpDescription = cheerioInstance('meta[name="Description"]');
 
   if (metaDescription.length && metaDescription.attr('content')) {
     return metaDescription.attr('content').trim();
@@ -27,6 +33,10 @@ const getPageDescription = (cheerioInstance) => {
 
   if (tagDescription.length && tagDescription.attr('content')) {
     return tagDescription.attr('content').trim();
+  }
+
+  if (tagUpDescription.length && tagUpDescription.attr('content')) {
+    return tagUpDescription.attr('content').trim();
   }
 
   return null;
@@ -75,9 +85,14 @@ const getPageType = (cheerioInstance) => {
 const getPageKeywords = (cheerioInstance) => {
   try {
     const metaKeywords = cheerioInstance('meta[name="keywords"]');
+    const metaUpKeywords = cheerioInstance('meta[name="Keywords"]');
 
     if (metaKeywords.length && metaKeywords.attr('content')) {
       return metaKeywords.attr('content').split(',').map(keyword => keyword.trim());
+    }
+
+    if (metaUpKeywords.length && metaUpKeywords.attr('content')) {
+      return metaUpKeywords.attr('content').split(',').map(keyword => keyword.trim());
     }
 
     return null;

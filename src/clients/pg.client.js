@@ -7,7 +7,7 @@ const pool = new Pool({
   port: 5432,
   user: 'me',
   password: '1111',
-  database: 'search',
+  database: 'search_robot',
 });
 
 const initDB = async () => {

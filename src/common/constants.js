@@ -2,15 +2,18 @@ const RESTRICTED_LANGUAGES = [
   'de', 'es', 'fr', 'zh', 'ar', 'de', 'pl', 'nl', 'pt', 'als', 'az', 'bar', 'ba', 'km',
   'be', 'be-tarask', 'mr', 'pa', 'scn', 'fms', 'yi', 'xmf', 'vec', 'uz', 'sw', 'sd', 'sco',
   'sc', 'rue', 'pms', 'oc', 'ne', 'mzn', 'mn', 'lj', 'li', 'lb', 'jv', 'io', 'gd', 'fy', 'fur',
-  'fo', 'diq', 'bat-smg', 'ast', 'af', 'dx',
-  'bg', 'bn', 'br', 'bs', 'ca', 'cdo', 'cs', 'cy', 'da', 'el', 'eo', 'et', 'eu', 'fa', 'fi',
-  'ga', 'gl', 'hak', 'he', 'hi', 'hr', 'hu', 'hy', 'ia', 'id', 'is', 'it', 'ja', 'ka', 'kk',
-  'ko', 'ku', 'ky', 'la', 'lmo', 'lt', 'lv', 'mhr', 'mk', 'ml', 'ms', 'my', 'nn', 'no', 'pnb',
-  'pt', 'ro', 'sh', 'simple', 'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'tet', 'tg', 'th', 'tl', 'tr',
-  'tt', 'uk', 'ur', 'vi', 'wuu', 'yo', 'zh', 'zh-min-man', 'zh-yue', 'dl', 'azb', 'arz', 'ckb',
-  'war'
+  'fo', 'diq', 'bat-smg', 'ast', 'af', 'dx', 'an',
+  'bg', 'bn', 'bh', 'br', 'bs', 'ca', 'cdo', 'cs', 'ceb', 'chr', 'ce', 'cv', 'cy', 'da', 'el', 'eo', 'et', 'eu', 'fa', 'fi',
+  'ga', 'gl', 'hak', 'he', 'hi', 'hif', 'hr', 'hu', 'hy', 'hyw', 'ia', 'id', 'is', 'it', 'ja', 'ka', 'kk',
+  'ko', 'ku', 'ky', 'la', 'lmo', 'lt', 'lv', 'mhr', 'mk', 'mg','ml', 'ms', 'my', 'nn', 'nso', 'cv', 'nds-nl', 'no', 'os','pnb',
+  'pt', 'pdc', 'ro', 'si','sh', 'simple', 'sk', 'st', 'sl', 'sq', 'sr', 'sv','su', 'sn', 'sah','to', 'ta', 'te', 'tet', 'tg', 'th', 'tl', 'tr',
+  'tt', 'vep', 'uk', 'ur', 'vi', 'vo', 've', 'wuu', 'yo', 'zh', 'zh-min-man', 'zh-yue', 'dl', 'azb', 'arz', 'ckb', 'xh',
+  'war', 'zh-classical', 'zu',
 ];
-const RESTRICTED_FILE_EXTENSIONS = ['pdf', 'png', 'cab', 'htm', 'gif', 'xlsx', 'sql', 'jpg', 'zip', 'doc', 'docx', 'mp3', 'mp4'];
+
+const RESTRICTED_FILE_EXTENSIONS = [
+    'pdf', 'png', 'cab', 'htm', 'gif', 'xlsx', 'sql', 'jpg', 'zip', 'doc', 'docx', 'mp3', 'mp4', 'webm', 'gz', 'gzip', 'bz2'
+];
 const VALID_DOMAINS = ['com', 'ru', 'org', 'by'];
 const WIKI_ENTRY_POINT = 'https://www.wikipedia.org';
 const HABR_ENTRY_POINT = 'https://habr.com/ru';
@@ -29,6 +32,21 @@ const typeWeight = {
   description: 1.5,
 };
 
+const domainTypeWeights = {
+  main: 5,
+  'main+p1': 4.66,
+  'main+p2': 4.33,
+  p1: 2.5,
+  p2: 2,
+  ppp: 2,
+  path: 2,
+};
+
+const DISALLOWED_PATH_DICTIONARY = [
+    'content', 'view', 'item', 'section', 'pull', 'login', 'auth', 'edit', 'component',
+    'post', 'abs', 'indexphp', 'catalog',
+];
+
 module.exports = {
   RESTRICTED_FILE_EXTENSIONS,
   RESTRICTED_LANGUAGES,
@@ -38,4 +56,5 @@ module.exports = {
   WIKI_ENTRY_POINT,
   S13_ENTRY_POINT,
   typeWeight,
+  domainTypeWeights,
 };

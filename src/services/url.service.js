@@ -65,6 +65,10 @@ const validateHost = (host) => {
     return false;
   }
 
+  if (host.includes('wikipedia') && !['wikipedia', 'ru', 'en'].includes(host.split('.')[0])) {
+    return false;
+  }
+
   return VALID_DOMAINS.includes(getLastBySeparator(host, '.'));
 }
 
@@ -86,6 +90,18 @@ const validateUrl = (url) => {
   return !url || !protocol || !host || !!query;
 };
 
+const checkFileUrlExtensions = (url, symbols) => {
+  const lastPathDotValue = url && getLastBySeparator(url, '.');
+
+  if (!url || !lastPathDotValue) {
+    return { isEndedWithSymbol: false, symbol: null };
+  }
+
+  const symbol = symbols.find(el => el === lastPathDotValue);
+
+  return { isEndedWithSymbol: !!symbol, symbol }
+}
+
 const formatUrl = (url) => {
   if (!url) {
     return url;
@@ -93,8 +109,14 @@ const formatUrl = (url) => {
 
   let formattedUrl = url;
 
+  const { symbol, isEndedWithSymbol } = checkFileUrlExtensions(url, ['html', 'php', 'aspx']);
   // formattedUrl = formattedUrl.replace('/url?q=', '').split('&')[0];
   formattedUrl = formattedUrl.split('?')[0];
+  formattedUrl = formattedUrl.split('#')[0];
+
+  if (isEndedWithSymbol && symbol) {
+    formattedUrl = formattedUrl.replace(`.${symbol}`, '');
+  }
   // avoid duplicates urls like habr.com/ru && habr.com/ru/
   formattedUrl = formattedUrl.charAt(formattedUrl.length-1) === '/'
       ? formattedUrl.slice(0, -1)

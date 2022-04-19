@@ -56,7 +56,7 @@ const handleLinks = async (queue, connection) => {
         .filter((_, url) => !!url);
     const withoutDuplicates = removeDuplicates(urls);
     const internalLinksFound = withoutDuplicates.length + externalLinks.length;
-    const currentPagePreRank = 1/internalLinksFound;
+    const currentPagePreRank = 1/internalLinksFound * 0.15;
 
     for (let link of externalLinks) {
       const { url: visitedUrl, externalLinksCount } = link;
