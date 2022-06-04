@@ -76,18 +76,18 @@ const validateUrl = (url) => {
   const { protocol, host, query, pathname } = new Url(url);
 
   if (url && url.length > 250) {
-    return true;
+    return false;
   }
 
   if (!validatePath(pathname)) {
-    return true;
+    return false;
   }
 
   if (!validateHost(host)) {
-    return true;
+    return false;
   }
 
-  return !url || !protocol || !host || !!query;
+  return !!url && !!protocol && !!host && !query;
 };
 
 const checkFileUrlExtensions = (url, symbols) => {
@@ -126,6 +126,18 @@ const formatUrl = (url) => {
   return formattedUrl;
 };
 
+const preFormatUrl = (url, parentUrl = null) => {
+  let preformattedUrl = url;
+
+  if (url && url.startsWith('/') && parentUrl) {
+    const { origin } = new Url(parentUrl);
+
+    preformattedUrl = origin.concat(url);
+  }
+
+  return preformattedUrl;
+};
+
 module.exports = {
   formatUrl,
   validateUrl,
@@ -133,4 +145,5 @@ module.exports = {
   getHighLevelDomain,
   getUrlPathname,
   getProtocol,
+  preFormatUrl,
 };

@@ -52,8 +52,14 @@ class LinkRepository extends Repository {
 
   async findForCrawling(limit = 500) {
     try {
+      // `SELECT url FROM links WHERE is_crawled = $1 AND url NOT LIKE '%.by%' LIMIT $2`
       const { rows } = await this.connection.query(
-          `SELECT url FROM links WHERE is_crawled = $1 LIMIT $2`,
+          `SELECT url FROM links 
+            WHERE is_crawled = $1 AND url NOT LIKE '%.by%' 
+            AND url NOT LIKE '%polpred.com%' 
+            AND url NOT LIKE '%github%'
+            AND url NOT LIKE '%newsrbc%'
+            LIMIT $2`,
           [crawlingStatus.notCrawled, limit]);
 
       if (!rows || !rows.length) {

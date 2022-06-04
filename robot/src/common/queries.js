@@ -1,10 +1,3 @@
-// CREATE TABLE IF NOT EXISTS domains_links (
-//     id uuid default uuid_generate_v4(),
-//     domain_text varchar(255) REFERENCES domains(name),
-//     link_text varchar(255) REFERENCES links(link),
-//     PRIMARY KEY(id)
-// );
-
 const initQuery = `
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
   CREATE EXTENSION IF NOT EXISTS pg_trgm;

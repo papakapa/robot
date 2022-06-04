@@ -8,8 +8,11 @@
   "scripts": {},
   "dependencies": {
     "apos-to-lex-form": "^1.0.5",
-    "axios": "^0.24.0",
+    "axios": "^0.26.1",
     "cheerio": "^1.0.0-rc.10",
+    "iconv-lite": "^0.6.3",
+    "is-jpg": "^3.0.0",
+    "jschardet": "^3.0.0",
     "natural": "^5.1.13",
     "node-html-parser": "^5.1.0",
     "pg": "^8.7.1",

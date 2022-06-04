@@ -1,13 +1,12 @@
 const { Repository } = require('./index');
 
-class IndexRepository extends Repository {
+class QueryRepository extends Repository {
   constructor(connection) {
     super(connection);
   }
 
-  async add(index, url, position) {
+  async add(query, clientId) {
     try {
-      const { token, relevance, weight } = index;
 
       await this.connection.query(
           `INSERT INTO indexes (token, link_url, position, relevance, weight) VALUES ($1, $2, $3, $4, $5)`,
@@ -20,5 +19,5 @@ class IndexRepository extends Repository {
 }
 
 module.exports = {
-  IndexRepository,
+  QueryRepository,
 };

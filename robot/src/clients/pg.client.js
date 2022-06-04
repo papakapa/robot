@@ -1,23 +1,6 @@
-const { Client, Pool } = require('pg');
+const { Client } = require('pg');
 
 const { initQuery } = require('../common/queries');
-
-const pool = new Pool({
-  host: 'localhost',
-  port: 5432,
-  user: 'me',
-  password: '1111',
-  database: 'search_robot',
-});
-
-const initDB = async () => {
-  try {
-    const a = await pool.query(initQuery);
-    console.log(a);
-  } catch (e) {
-    console.log(e.message);
-  }
-};
 
 const getConnection = async () => {
   try {
@@ -42,5 +25,4 @@ const getConnection = async () => {
 
 module.exports = {
   getConnection,
-  initDB,
 };

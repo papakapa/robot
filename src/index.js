@@ -10,7 +10,7 @@ const crawleLinks = async () => {
   const pgConnection = await getConnection();
   const linksRepository = new LinkRepository(pgConnection);
 
-  const crawlingLinks = await linksRepository.findForCrawling(100);
+  const crawlingLinks = await linksRepository.findForCrawling(1000);
   crawlingLinks.forEach(link => queue.enqueue(link));
 
   while (!queue.isEmpty()) {
@@ -24,10 +24,10 @@ const crawleIndexes = async () => {
     const pgConnection = await getConnection();
     const linksRepository = new LinkRepository(pgConnection);
 
-    const indexingPages = await linksRepository.findForIndexing(3000);
+    const indexingPages = await linksRepository.findForIndexing(5000);
 
     indexingPages.forEach(el => queue.enqueue(el));
-
+    // queue.enqueue({ url: 'https://kinopoisk.ru/name/57575', preRank: 0, internalLinksCount: 1 })
     while (!queue.isEmpty()) {
       await handleIndexes(queue, pgConnection, linksRepository);
     }
@@ -36,5 +36,5 @@ const crawleIndexes = async () => {
   }
 };
 
-crawleLinks().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
-// crawleIndexes().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
+// crawleLinks().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
+crawleIndexes().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
