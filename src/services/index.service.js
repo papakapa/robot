@@ -17,17 +17,13 @@ const { WordRepository } = require('../repositories/word.repository');
 const { getPageSignificantData, removeRestrictedSelectors } = require('../services/web.page.service');
 
 const restrictedPathDomainStrings = ['ru', 'eng', 'by', 'org', 'com'];
-
+const { WordTokenizer, PorterStemmer, PorterStemmerRu } = natural;
 const prepareIndexes = (text, type = indexTypes.text) => {
-  // const spellCorrector = new SpellCorrector();
-  // spellCorrector.loadDictionary();
   const parsedText = formatTextSymbols(text);
 
   const lexedText = aposToLexForm(parsedText);
-  const { WordTokenizer, PorterStemmer, PorterStemmerRu } = natural;
   const tokenizer = new WordTokenizer();
   const tokenizedReview = tokenizer.tokenize(lexedText);
-  // const correctedTokens = tokenizedReview.map((word) => spellCorrector.correct(word));
   const filteredReviewEng = removeStopwords(tokenizedReview, en);
   const filteredReviewRus = removeStopwords(filteredReviewEng, ru);
 
@@ -224,10 +220,7 @@ const handleIndexes = async (queue, connection, linksRepository) => {
   try {
     const { data } = await crawlerInstance.get(url, {
       responseType: 'arraybuffer',
-      // proxy: {
-      //   host: '188.170.233.102',
-      //   port: 3128
-      // }
+      timeout: 4000
     }) || {};
     if (!data) {
       await linksRepository.updateAfterIndexing(url,  null, null, null, indexingStatus.failed);
@@ -239,7 +232,6 @@ const handleIndexes = async (queue, connection, linksRepository) => {
     const decodedData = iconv.decode(data, encoding ? encoding : 'utf8');
 
     console.log(`Page encoding: ${encoding}`);
-
 
     const { title, description, keywords, ...pageInfo } = getPageSignificantData(decodedData, url);
     const keywordIndexes = getKeyWordsIndexes(keywords);
@@ -255,7 +247,6 @@ const handleIndexes = async (queue, connection, linksRepository) => {
 
     const wordsRepository = new WordRepository(connection);
     const indexRepository = new IndexRepository(connection);
-
     for (let i = 0; i < linkWeightedIndexes.length; i++) {
       const { token } = linkWeightedIndexes[i] || {};
       await wordsRepository.add(token);

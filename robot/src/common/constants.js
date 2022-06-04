@@ -16,9 +16,6 @@ const RESTRICTED_FILE_EXTENSIONS = [
     'djvu'
 ];
 const VALID_DOMAINS = ['com', 'ru', 'org', 'by'];
-const WIKI_ENTRY_POINT = 'https://www.wikipedia.org';
-const HABR_ENTRY_POINT = 'https://habr.com/ru';
-const S13_ENTRY_POINT = 'https://s13.ru';
 const RESTRICTED_SELECTORS = [
   'footer', 'header', 'iframe', 'script', 'noscript', 'img', 'button', 'span', 'svg', 'ul', 'h3',
   'h4', 'a', 'ol', 'div[class*="nav"]', 'div[class*="footer"]', 'div[class*="header"]', 'div[class*="comm"]',
@@ -52,10 +49,8 @@ module.exports = {
   RESTRICTED_FILE_EXTENSIONS,
   RESTRICTED_LANGUAGES,
   RESTRICTED_SELECTORS,
+  DISALLOWED_PATH_DICTIONARY,
   VALID_DOMAINS,
-  HABR_ENTRY_POINT,
-  WIKI_ENTRY_POINT,
-  S13_ENTRY_POINT,
   typeWeight,
   domainTypeWeights,
 };
