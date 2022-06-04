@@ -2,13 +2,12 @@ const cheerio = require('cheerio');
 const aposToLexForm = require('apos-to-lex-form');
 const natural = require('natural');
 const { removeStopwords , en, ru } = require('stopword');
-const SpellCorrector = require('spelling-corrector');
 const encodeDetection = require('jschardet');
 const iconv = require('iconv-lite');
 
 const { formatTextSymbols, removeDuplicates } = require('../common/utils');
 const { indexTypes } = require('../common/index.types');
-const { indexingStatus } = require('../common/indexing.status');
+const { ExecutionStatus } = require('../common/execution.status');
 const { RESTRICTED_LANGUAGES, typeWeight, domainTypeWeights } = require('../common/constants');
 const { getHighLevelDomain, getUrlPathname, getProtocol } = require('../services/url.service');
 const { crawlerInstance } = require('../instances/crawler.instance');
@@ -19,15 +18,12 @@ const { getPageSignificantData, removeRestrictedSelectors } = require('../servic
 const restrictedPathDomainStrings = ['ru', 'eng', 'by', 'org', 'com'];
 
 const prepareIndexes = (text, type = indexTypes.text) => {
-  // const spellCorrector = new SpellCorrector();
-  // spellCorrector.loadDictionary();
   const parsedText = formatTextSymbols(text);
 
   const lexedText = aposToLexForm(parsedText);
   const { WordTokenizer, PorterStemmer, PorterStemmerRu } = natural;
   const tokenizer = new WordTokenizer();
   const tokenizedReview = tokenizer.tokenize(lexedText);
-  // const correctedTokens = tokenizedReview.map((word) => spellCorrector.correct(word));
   const filteredReviewEng = removeStopwords(tokenizedReview, en);
   const filteredReviewRus = removeStopwords(filteredReviewEng, ru);
 
@@ -230,7 +226,7 @@ const handleIndexes = async (queue, connection, linksRepository) => {
       // }
     }) || {};
     if (!data) {
-      await linksRepository.updateAfterIndexing(url,  null, null, null, indexingStatus.failed);
+      await linksRepository.updateAfterIndexing(url,  null, null, null, ExecutionStatus.REJECTED);
 
       return;
     }
@@ -266,7 +262,7 @@ const handleIndexes = async (queue, connection, linksRepository) => {
   } catch (e) {
     console.log(e.message);
 
-    await linksRepository.updateAfterIndexing(url,  null, null,  null, indexingStatus.failed);
+    await linksRepository.updateAfterIndexing(url,  null, null,  null, ExecutionStatus.REJECTED);
   }
 };
 

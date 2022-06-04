@@ -1,6 +1,5 @@
 const { Repository } = require('./index');
-const { crawlingStatus } = require('../common/crawling.status');
-const { indexingStatus } = require('../common/indexing.status');
+const { ExecutionStatus } = require('../common/execution.status');
 const { getSafeField } = require('../common/utils');
 const { updateProtocol } = require('../services/url.service');
 
@@ -55,7 +54,7 @@ class LinkRepository extends Repository {
       // `SELECT url FROM links WHERE is_crawled = $1 AND url NOT LIKE '%.by%' LIMIT $2`
       const { rows } = await this.connection.query(
           `SELECT url FROM links WHERE is_crawled = $1 LIMIT $2`,
-          [crawlingStatus.notCrawled, limit]);
+          [ExecutionStatus.PENDING, limit]);
 
       if (!rows || !rows.length) {
         return [];
@@ -73,7 +72,7 @@ class LinkRepository extends Repository {
     try {
       const { rows } = await this.connection.query(
           `SELECT url, pre_rank, internal_links_count FROM links WHERE is_indexed = $1 AND is_crawled = $2 LIMIT $3`,
-          [indexingStatus.notIndexed, crawlingStatus.crawled, limit]);
+          [ExecutionStatus.PENDING, ExecutionStatus.FULFILLED, limit]);
 
       if (!rows.length) {
         return [];
@@ -102,9 +101,9 @@ class LinkRepository extends Repository {
     }
   }
 
-  async updateAfterIndexing(url, title = null, description = null, info = null, status = indexingStatus.indexed) {
+  async updateAfterIndexing(url, title = null, description = null, info = null, status = ExecutionStatus.FULFILLED) {
     try {
-      if (status === indexingStatus.failed) {
+      if (status === ExecutionStatus.REJECTED) {
         await this.connection.query(
             `UPDATE links SET is_indexed = $1 WHERE url = $2`,
             [status, url]
@@ -127,7 +126,7 @@ class LinkRepository extends Repository {
     }
   }
 
-  async updateAfterCrawling(url, status = crawlingStatus.crawled, internalCount = 0) {
+  async updateAfterCrawling(url, status = ExecutionStatus.FULFILLED, internalCount = 0) {
     try {
       await this.connection.query(
           `UPDATE links SET is_crawled = $1, internal_links_count = $2 WHERE url = $3`,

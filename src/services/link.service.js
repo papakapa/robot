@@ -3,9 +3,9 @@ const cheerio = require('cheerio');
 const { LinkRepository } = require('../repositories/link.repository');
 const { DomainsRepository } = require('../repositories/domains.repository');
 const { crawlerInstance } = require('../instances/crawler.instance');
-const { crawlingStatus } = require('../common/crawling.status');
+const { ExecutionStatus } = require('../common/execution.status');
 const { removeDuplicates } = require('../common/utils');
-const { validateUrl, formatUrl, updateProtocol, getHighLevelDomain } = require('../services/url.service');
+const { validateUrl, formatUrl, preFormatUrl, updateProtocol, getHighLevelDomain } = require('../services/url.service');
 const { getRobotRules, validateUrlByRobots } = require('../services/robots.service');
 
 const handleLinks = async (queue, connection) => {
@@ -22,22 +22,23 @@ const handleLinks = async (queue, connection) => {
 
     const robotRules = await getRobotRules(url);
     if (!validateUrlByRobots(url, robotRules)) {
-      await linksRepository.updateAfterCrawling(url, crawlingStatus.failed);
+      await linksRepository.updateAfterCrawling(url, ExecutionStatus.REJECTED);
 
       return;
     }
 
     const { data } = await crawlerInstance.get(url) || {};
     if (!data) {
-      await linksRepository.updateAfterCrawling(url, crawlingStatus.failed);
+      await linksRepository.updateAfterCrawling(url, ExecutionStatus.REJECTED);
 
       return;
     }
 
     const $ = cheerio.load(data);
-    const urls = $('a').map((_, link) => {
-      const url = $(link).attr('href');
-      const preparedUrl = formatUrl(url);
+    const tagUrls = $('a').map((_, link) => preFormatUrl($(link).attr('href'), url));
+    const uniqueTagLinks = removeDuplicates(tagUrls);
+    const urls = uniqueTagLinks.map((curUrl) => {
+      const preparedUrl = formatUrl(curUrl);
 
       if (validateUrl(preparedUrl)) {
         return null;
@@ -53,7 +54,7 @@ const handleLinks = async (queue, connection) => {
 
       return preparedUrl;
     })
-        .filter((_, url) => !!url);
+        .filter(el => !!el);
     const withoutDuplicates = removeDuplicates(urls);
     const internalLinksFound = withoutDuplicates.length + externalLinks.length;
     const currentPagePreRank = 1/internalLinksFound * 0.15;
@@ -75,11 +76,11 @@ const handleLinks = async (queue, connection) => {
       await linksRepository.add(link, outboundPreRank);
     }
 
-    await linksRepository.updateAfterCrawling(url, crawlingStatus.crawled, internalLinksFound);
+    await linksRepository.updateAfterCrawling(url, ExecutionStatus.FULFILLED, internalLinksFound);
   } catch (e) {
     console.log(e.message);
 
-    await linksRepository.updateAfterCrawling(url, crawlingStatus.failed);
+    await linksRepository.updateAfterCrawling(url, ExecutionStatus.REJECTED);
   }
 };
 

@@ -12,7 +12,7 @@ const RESTRICTED_LANGUAGES = [
 ];
 
 const RESTRICTED_FILE_EXTENSIONS = [
-    'pdf', 'png', 'cab', 'htm', 'gif', 'xlsx', 'sql', 'jpg', 'zip', 'doc', 'docx', 'mp3', 'mp4', 'webm', 'gz', 'gzip', 'bz2'
+    'pdf', 'png', 'cab', 'htm', 'gif', 'xlsx', 'sql', 'jpg', 'zip', 'doc', 'docx', 'mp3', 'mp4', 'webm', 'gz', 'gzip', 'bz2', 'djvu'
 ];
 const VALID_DOMAINS = ['com', 'ru', 'org', 'by'];
 const WIKI_ENTRY_POINT = 'https://www.wikipedia.org';

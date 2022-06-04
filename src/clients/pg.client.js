@@ -26,7 +26,7 @@ const getConnection = async () => {
       port: 5432,
       user: 'me',
       password: '1111',
-      database: 'search_robot',
+      database: 'se_robot',
     });
 
     await postgresClient.connect(err => err && console.log(err));

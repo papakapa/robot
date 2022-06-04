@@ -126,8 +126,21 @@ const formatUrl = (url) => {
   return formattedUrl;
 };
 
+const preFormatUrl = (url, parentUrl = null) => {
+  let preformattedUrl = url;
+
+  if (url && url.startsWith('/') && parentUrl) {
+    const { origin } = new Url(parentUrl);
+
+    preformattedUrl = origin.concat(url);
+  }
+
+  return preformattedUrl;
+};
+
 module.exports = {
   formatUrl,
+  preFormatUrl,
   validateUrl,
   updateProtocol,
   getHighLevelDomain,

@@ -36,5 +36,5 @@ const crawleIndexes = async () => {
   }
 };
 
-crawleLinks().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
-// crawleIndexes().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
+// crawleLinks().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);
+crawleIndexes().then(res => console.log(`Finished: ${res}`)).catch(e => e.message);

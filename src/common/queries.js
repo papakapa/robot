@@ -1,10 +1,3 @@
-// CREATE TABLE IF NOT EXISTS domains_links (
-//     id uuid default uuid_generate_v4(),
-//     domain_text varchar(255) REFERENCES domains(name),
-//     link_text varchar(255) REFERENCES links(link),
-//     PRIMARY KEY(id)
-// );
-
 const initQuery = `
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
   CREATE EXTENSION IF NOT EXISTS pg_trgm;
@@ -21,8 +14,8 @@ const initQuery = `
       external_links_count integer default 0,
       pre_rank real NOT NULL default 0,
       link_type link_type NOT NULL default 'default',
-      is_crawled crawled_status NOT NULL default 'not_crawled',
-      is_indexed index_status NOT NULL default 'not_indexed',
+      is_crawled execution_status NOT NULL default 'pending',
+      is_indexed execution_status NOT NULL default 'pending',
       PRIMARY KEY (id)
   );
   
